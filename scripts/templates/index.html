@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAR Colorization & Change Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            color: #00bcd4;
+            margin-bottom: 50px;
+            text-shadow: 0 0 10px rgba(0, 188, 212, 0.3);
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .section h2 {
+            font-size: 1.8rem;
+            color: #00bcd4;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00bcd4;
+            padding-bottom: 15px;
+        }
+
+        .upload-box {
+            border: 2px dashed #444;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #242424;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .upload-box:hover {
+            border-color: #00bcd4;
+            background: #2a2a2a;
+        }
+
+        .upload-box input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 1rem;
+            color: #b0b0b0;
+            margin-bottom: 15px;
+        }
+
+        .upload-label {
+            display: inline-block;
+            background: #00bcd4;
+            color: #000;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .upload-label:hover {
+            background: #00d4e8;
+            transform: scale(1.05);
+        }
+
+        .file-name {
+            font-size: 0.9rem;
+            color: #00bcd4;
+            margin-top: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 35px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #00bcd4;
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #00d4e8;
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #555;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #666;
+        }
+
+        .btn-secondary:disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .output-container {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #333;
+        }
+
+        .output-container h3 {
+            color: #00bcd4;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+
+        .output-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 188, 212, 0.2);
+            display: block;
+            margin: 0 auto;
+        }
+
+        .loading {
+            text-align: center;
+            color: #00bcd4;
+            font-style: italic;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .change-section-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .change-section-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SAR Image Colorization & Change Detection</h1>
+
+        <!-- Section 1: SAR Colorization -->
+        <div class="section">
+            <h2>1. SAR Image Colorization</h2>
+
+            <!-- Terrain selector -->
+            <div style="margin-bottom: 20px;">
+                <label for="terrain-select" style="color: #00bcd4; font-weight: 600;">
+                    Select Terrain Type:
+                </label>
+                <select id="terrain-select" style="padding: 8px 12px; border-radius: 6px; margin-left: 10px;">
+                    <option value="barrenland">Barrenland</option>
+                    <option value="grassland">Grassland</option>
+                    <option value="urban">Urban</option>
+                    <option value="agri">Agriculture</option>
+                </select>
+            </div>
+
+            <div class="upload-box" onclick="document.getElementById('colorize-input').click()">
+                <div class="upload-icon"></div>
+                <p class="upload-text">Drop SAR Image Here</p>
+                <p class="upload-text" style="font-size: 0.85rem; color: #888;">or click to browse</p>
+                <label class="upload-label">Select Image</label>
+                <input type="file" id="colorize-input" accept="image/*">
+                <div class="file-name" id="colorize-file-name"></div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="colorizeImage()">Colorize Image</button>
+                <button class="btn-secondary" onclick="clearColorize()">Clear</button>
+            </div>
+
+            <div class="loading" id="colorize-loading">Processing... Please wait</div>
+
+            <div class="output-container" id="colorize-output" style="display: none;">
+                <h3>✓ Colorized Output</h3>
+                <img id="colorize-result" class="output-image">
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn-primary" onclick="downloadColorized()">Download Colorized Image</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Time Series Change Detection -->
+        <div class="section">
+            <h2>2. Time Series Change Detection</h2>
+
+            <div class="change-section-inputs">
+                <div>
+                    <div class="upload-box" onclick="document.getElementById('change-input-1').click()">
+                        <div class="upload-icon"></div>
+                        <p class="upload-text">Earlier Image (Time 1)</p>
+                        <label class="upload-label">Upload Earlier Image</label>
+                        <input type="file" id="change-input-1" accept="image/*">
+                        <div class="file-name" id="change-file-name-1"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="upload-box" onclick="document.getElementById('change-input-2').click()">
+                        <div class="upload-icon"></div>
+                        <p class="upload-text">Later Image (Time 2)</p>
+                        <label class="upload-label">Upload Later Image</label>
+                        <input type="file" id="change-input-2" accept="image/*">
+                        <div class="file-name" id="change-file-name-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="detectChanges()">Detect Changes</button>
+                <button class="btn-secondary" onclick="clearChanges()">Clear</button>
+            </div>
+
+            <div class="loading" id="change-loading">Processing... Please wait</div>
+
+            <div class="output-container" id="change-output" style="display: none;">
+                <h3>✓ Change Detection Result</h3>
+                <img id="change-result" class="output-image">
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn-primary" onclick="downloadChange()">Download Change Detection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // File input change handlers
+        document.getElementById('colorize-input').addEventListener('change', function() {
+            document.getElementById('colorize-file-name').textContent = this.files[0]?.name || '';
+        });
+
+        document.getElementById('change-input-1').addEventListener('change', function() {
+            document.getElementById('change-file-name-1').textContent = this.files[0]?.name || '';
+        });
+
+        document.getElementById('change-input-2').addEventListener('change', function() {
+            document.getElementById('change-file-name-2').textContent = this.files[0]?.name || '';
+        });
+
+        // Colorize function
+        function colorizeImage() {
+            const fileInput = document.getElementById('colorize-input');
+            if (!fileInput.files[0]) {
+                alert('Please select a SAR image');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const terrain = document.getElementById('terrain-select').value;
+            formData.append('terrain', terrain);
+
+            document.getElementById('colorize-loading').classList.add('active');
+            document.getElementById('colorize-output').style.display = 'none';
+
+            fetch('/colorize', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                document.getElementById('colorize-result').src = url;
+                document.getElementById('colorize-output').style.display = 'block';
+                document.getElementById('colorize-loading').classList.remove('active');
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+                document.getElementById('colorize-loading').classList.remove('active');
+            });
+        }
+
+        // Detect changes function
+        function detectChanges() {
+            const file1 = document.getElementById('change-input-1').files[0];
+            const file2 = document.getElementById('change-input-2').files[0];
+
+            if (!file1 || !file2) {
+                alert('Please select both images');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file1', file1);
+            formData.append('file2', file2);
+
+            document.getElementById('change-loading').classList.add('active');
+            document.getElementById('change-output').style.display = 'none';
+
+            fetch('/change-detect', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                document.getElementById('change-result').src = url;
+                document.getElementById('change-output').style.display = 'block';
+                document.getElementById('change-loading').classList.remove('active');
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+                document.getElementById('change-loading').classList.remove('active');
+            });
+        }
+
+        // Clear functions
+        function clearColorize() {
+            document.getElementById('colorize-input').value = '';
+            document.getElementById('colorize-file-name').textContent = '';
+            document.getElementById('colorize-output').style.display = 'none';
+        }
+
+        function clearChanges() {
+            document.getElementById('change-input-1').value = '';
+            document.getElementById('change-input-2').value = '';
+            document.getElementById('change-file-name-1').textContent = '';
+            document.getElementById('change-file-name-2').textContent = '';
+            document.getElementById('change-output').style.display = 'none';
+        }
+
+        // Download functions
+        function downloadColorized() {
+            const link = document.createElement('a');
+            link.href = document.getElementById('colorize-result').src;
+            link.download = 'colorized_image_' + new Date().getTime() + '.png';
+            link.click();
+        }
+
+        function downloadChange() {
+            const link = document.createElement('a');
+            link.href = document.getElementById('change-result').src;
+            link.download = 'change_detection_' + new Date().getTime() + '.png';
+            link.click();
+        }
+    </script>
+</body>
+</html>
